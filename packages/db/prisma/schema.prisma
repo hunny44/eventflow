@@ -1,0 +1,60 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model ApiKey {
+  id String @id @default(uuid())
+  keyHash String @unique @map("key_hash")
+  tenantId String @map("tenant_id")
+  active Boolean @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("api_keys")
+}
+
+enum EvenStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model Event {
+  id String @id @default(uuid())
+  jobId String @unique @map("job_id")
+  idempotencyKey String? @unique @map("idempotency_key")
+  tenantId String   @map("tenant_id")
+  eventType String @map("event_type")
+  payload Json
+  status EvenStatus
+  errorMessage String? @map("error_message")
+  attemptCount Int @default(0) @map("attempt_count")
+  lastError String? @map("last_error")
+  receivedAt DateTime @map("received_at")
+  processedAt DateTime? @map("processed_at")
+  processingDurationMs Int? @map("processing_duration_ms")
+  createdAt DateTime
+
+  @@index([tenantId]) // query event for a tenant
+  @@index([status])  //query all failed events
+  @@index([eventType]) // query by event type
+  @@index([receivedAt]) // time-range quries
+  @@index([idempotencyKey])
+  @@map("events")
+
+}
+
+
+model NotificationLog {
+  id String @id @default(uuid())
+  idempotencyKey String @unique @map("idempotency_key")
+  channel String // discord | email
+  sentAt DateTime @default(now()) @map("sent_at")
+
+  @@map("notification_log")
+}
